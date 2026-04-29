@@ -154,8 +154,45 @@ body { display: flex; flex-direction: column; }
   cursor: pointer;
   padding: 4px;
   line-height: 1;
+  align-self: flex-start;
 }
 .ex-remove:hover { color: var(--rest); }
+
+/* Раунды внутри карточки упражнения */
+.ex-rounds-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.ex-rounds-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+.ex-rounds-btns {
+  display: flex;
+  gap: 4px;
+}
+.ex-round-btn {
+  width: 28px; height: 24px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+.ex-round-btn.sel {
+  background: var(--work);
+  border-color: var(--work);
+  color: #000;
+  font-weight: 700;
+}
 
 /* ── Interval stepper ── */
 .recommend-banner {
@@ -374,11 +411,11 @@ body { display: flex; flex-direction: column; }
 .timer-bg.rest { background: var(--rest); opacity: 0.07; }
 
 .timer-top {
-  padding: 3rem 1.5rem 1rem;
+  padding: 1.5rem 1.5rem 0.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   position: relative;
   z-index: 1;
 }
@@ -396,17 +433,8 @@ body { display: flex; flex-direction: column; }
 .phase-tag.rest { color: var(--rest); border-color: var(--rest); }
 .phase-tag.ready { color: var(--muted); border-color: var(--muted); }
 
-.ex-display {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 1.4rem;
-  font-weight: 500;
-  text-align: center;
-  line-height: 1.3;
-  margin-top: 0.5rem;
-}
-
 .ex-display-sub {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--muted);
   text-align: center;
 }
@@ -418,13 +446,29 @@ body { display: flex; flex-direction: column; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   position: relative;
   z-index: 1;
+  padding: 0 1.25rem;
 }
+
+/* Exercise name — самый крупный элемент */
+.ex-display {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(1.4rem, 7vw, 2.2rem);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.15;
+  transition: color 0.3s;
+  word-break: break-word;
+}
+.ex-display.work  { color: var(--work); }
+.ex-display.rest  { color: var(--text); opacity: 0.4; }
+.ex-display.ready { color: var(--text); }
 
 .big-time {
   font-family: 'Unbounded', sans-serif;
-  font-size: clamp(5rem, 30vw, 8rem);
+  font-size: clamp(4rem, 25vw, 6.5rem);
   font-weight: 700;
   line-height: 1;
   transition: color 0.3s;
@@ -605,19 +649,18 @@ body { display: flex; flex-direction: column; }
     </div>
     <div class="ratio-display" id="ratioDisplay">соотношение <span>1:2</span></div>
 
-    <div class="section-label">Раундов на упражнение</div>
-    <div class="rounds-row" id="roundsBtns">
-      <button class="round-btn" onclick="selRounds(2)">2</button>
-      <button class="round-btn sel" onclick="selRounds(4)">4</button>
-      <button class="round-btn" onclick="selRounds(6)">6</button>
-      <button class="round-btn" onclick="selRounds(8)">8</button>
-    </div>
-
-    <div class="section-label">Упражнения</div>
+    <div class="section-label">Упражнения <span style="color:var(--muted);font-size:0.6rem;letter-spacing:0.05em;">— раунды настраиваются для каждого</span></div>
     <div class="ex-list" id="exList"></div>
     <button class="add-ex-btn" onclick="addExercise()">+ добавить упражнение</button>
 
-    <div class="section-label">Звук</div>
+    <div class="section-label">Экран и звук</div>
+    <div class="toggle-row" style="margin-bottom:8px;">
+      <div>
+        <div class="toggle-label">Не гасить экран</div>
+        <div class="toggle-sub">Wake Lock — экран не тухнет во время тренировки</div>
+      </div>
+      <div class="toggle-switch on" id="wakeLockToggle" onclick="toggleWakeLock()"></div>
+    </div>
     <div class="toggle-row">
       <div>
         <div class="toggle-label">Звуковые сигналы</div>
@@ -634,13 +677,15 @@ body { display: flex; flex-direction: column; }
 <div id="timerScreen" class="screen">
   <div class="timer-bg" id="timerBg"></div>
 
+  <!-- Phase tag top -->
   <div class="timer-top">
     <div class="phase-tag ready" id="phaseTag">ГОТОВ</div>
-    <div class="ex-display" id="exDisplay">—</div>
     <div class="ex-display-sub" id="exSub"></div>
   </div>
 
+  <!-- CENTER: exercise name BIG + timer -->
   <div class="timer-center">
+    <div class="ex-display" id="exDisplay">—</div>
     <div class="big-time ready" id="bigTime">20</div>
     <div class="progress-track">
       <div class="progress-fill work" id="progressFill" style="width:100%"></div>
@@ -696,7 +741,7 @@ const LS_KEY = 'tabata_settings';
 
 function saveSettings() {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify({ WORK, REST, rounds, exercises, soundOn }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ WORK, REST, exercises, soundOn, wakeLockOn }));
   } catch(e) {}
 }
 
@@ -707,20 +752,27 @@ function loadSettings() {
     const s = JSON.parse(raw);
     if (s.WORK && s.WORK >= 5 && s.WORK <= 120) WORK = s.WORK;
     if (s.REST && s.REST >= 5 && s.REST <= 120) REST = s.REST;
-    if (s.rounds && [2,4,6,8].includes(s.rounds)) rounds = s.rounds;
-    if (Array.isArray(s.exercises) && s.exercises.length > 0) exercises = s.exercises;
+    if (Array.isArray(s.exercises) && s.exercises.length > 0) {
+      exercises = s.exercises.map(e => ({
+        name: e.name || '',
+        rounds: (e.rounds && [2,3,4,5,6,8].includes(e.rounds)) ? e.rounds : 4
+      }));
+    }
     if (typeof s.soundOn === 'boolean') soundOn = s.soundOn;
+    if (typeof s.wakeLockOn === 'boolean') wakeLockOn = s.wakeLockOn;
   } catch(e) {}
 }
 
 // ── State ──
 let exercises = [
-  { name: 'Приседания (без прыжка)' },
-  { name: 'TRX-тяга к груди' },
-  { name: 'Жим гантелей стоя' }
+  { name: 'Приседания (без прыжка)', rounds: 4 },
+  { name: 'TRX-тяга к груди',        rounds: 4 },
+  { name: 'Жим гантелей стоя',       rounds: 4 }
 ];
-let rounds = 4;
+let rounds = 4; // default fallback
 let soundOn = true;
+let wakeLockOn = true;
+let wakeLockSentinel = null;
 let timer = null;
 let running = false;
 let WORK = 20, REST = 40;
@@ -856,23 +908,39 @@ function beepCount() {
 function renderExList() {
   const list = document.getElementById('exList');
   list.innerHTML = '';
+  const roundOptions = [2, 3, 4, 5, 6, 8];
   exercises.forEach((ex, i) => {
+    if (!ex.rounds) ex.rounds = 4;
+    const roundBtns = roundOptions.map(n =>
+      `<button class="ex-round-btn${ex.rounds === n ? ' sel' : ''}"
+        onclick="setExRounds(${i},${n})">${n}</button>`
+    ).join('');
     const card = document.createElement('div');
     card.className = 'ex-card';
     card.innerHTML = `
       <div class="ex-num">${i+1}</div>
       <div class="ex-fields">
         <input class="ex-name-input" value="${ex.name}" placeholder="Название упражнения"
-          oninput="exercises[${i}].name=this.value; saveSettings()"
-        <div class="ex-meta">блок ${i+1} · ${rounds} × ${WORK}сек работа / ${REST}сек отдых</div>
+          oninput="exercises[${i}].name=this.value; saveSettings()">
+        <div class="ex-rounds-row">
+          <span class="ex-rounds-label">РАУНДОВ</span>
+          <div class="ex-rounds-btns">${roundBtns}</div>
+        </div>
+        <div class="ex-meta">${ex.rounds} × ${WORK}с работа / ${REST}с отдых = ${Math.round(ex.rounds*(WORK+REST)/60*10)/10} мин</div>
       </div>
       <button class="ex-remove" onclick="removeEx(${i})">×</button>`;
     list.appendChild(card);
   });
 }
 
+function setExRounds(i, n) {
+  exercises[i].rounds = n;
+  renderExList();
+  saveSettings();
+}
+
 function addExercise() {
-  exercises.push({ name: '' });
+  exercises.push({ name: '', rounds: 4 });
   renderExList();
   saveSettings();
   setTimeout(() => {
@@ -888,13 +956,23 @@ function removeEx(i) {
   saveSettings();
 }
 
-function selRounds(n) {
-  rounds = n;
-  document.querySelectorAll('.round-btn').forEach(b => {
-    b.classList.toggle('sel', parseInt(b.textContent) === n);
-  });
-  renderExList();
+function toggleWakeLock() {
+  wakeLockOn = !wakeLockOn;
+  document.getElementById('wakeLockToggle').classList.toggle('on', wakeLockOn);
   saveSettings();
+}
+
+async function acquireWakeLock() {
+  if (!wakeLockOn) return;
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLockSentinel = await navigator.wakeLock.request('screen');
+    wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; });
+  } catch(e) {}
+}
+
+function releaseWakeLock() {
+  if (wakeLockSentinel) { wakeLockSentinel.release(); wakeLockSentinel = null; }
 }
 
 function toggleSound() {
@@ -911,19 +989,21 @@ function startWorkout() {
     return;
   }
   ctx.resume();
+  acquireWakeLock();
   state = { block: 0, round: 0, phase: 'idle', sec: WORK };
   totalDone = 0;
   running = false;
-  buildDots();
+  buildDots(0);
   buildBlockProgress();
   updateTimerUI();
   showScreen('timerScreen');
 }
 
-function buildDots() {
+function buildDots(blockIdx) {
   const row = document.getElementById('dotsRow');
   row.innerHTML = '';
-  for (let i = 0; i < rounds; i++) {
+  const r = exercises[blockIdx] ? exercises[blockIdx].rounds : 4;
+  for (let i = 0; i < r; i++) {
     const d = document.createElement('div');
     d.className = 'dot';
     d.id = `dot-${i}`;
@@ -948,6 +1028,7 @@ function togglePlay() {
   if (state.phase === 'idle') {
     state.phase = 'work';
     beepWork();
+    acquireWakeLock();
   }
   running = !running;
   if (running) {
@@ -970,6 +1051,7 @@ function tick() {
 }
 
 function nextPhase() {
+  const curRounds = exercises[state.block] ? exercises[state.block].rounds : 4;
   if (state.phase === 'work') {
     state.phase = 'rest';
     state.sec = REST;
@@ -977,12 +1059,13 @@ function nextPhase() {
   } else {
     totalDone++;
     state.round++;
-    if (state.round >= rounds) {
+    if (state.round >= curRounds) {
       state.round = 0;
       state.block++;
       if (state.block >= exercises.length) {
         finish(); return;
       }
+      buildDots(state.block); // rebuild dots for new block's round count
     }
     state.phase = 'work';
     state.sec = WORK;
@@ -996,12 +1079,17 @@ function updateTimerUI() {
   const isRest = state.phase === 'rest';
   const isIdle = state.phase === 'idle';
   const ex = exercises[state.block];
+  const curRounds = ex ? ex.rounds : 4;
 
   document.getElementById('phaseTag').textContent = isWork ? 'РАБОТА' : isRest ? 'ОТДЫХ' : 'СТАРТ';
   document.getElementById('phaseTag').className = 'phase-tag ' + (isWork ? 'work' : isRest ? 'rest' : 'ready');
-  document.getElementById('exDisplay').textContent = ex ? ex.name : '—';
 
-  if (isRest && state.block < exercises.length - 1 && state.round === rounds - 1) {
+  const exEl = document.getElementById('exDisplay');
+  exEl.textContent = ex ? ex.name : '—';
+  exEl.className = 'ex-display ' + (isWork ? 'work' : isRest ? 'rest' : 'ready');
+
+  // Подсказка: следующее упражнение на последнем отдыхе блока
+  if (isRest && state.block < exercises.length - 1 && state.round === curRounds - 1) {
     document.getElementById('exSub').textContent = '→ следующий: ' + exercises[state.block + 1].name;
   } else {
     document.getElementById('exSub').textContent = `блок ${state.block+1} из ${exercises.length}`;
@@ -1009,7 +1097,6 @@ function updateTimerUI() {
 
   document.getElementById('bigTime').textContent = isIdle ? WORK : state.sec;
   document.getElementById('bigTime').className = 'big-time ' + (isWork ? 'work' : isRest ? 'rest' : 'ready');
-
   document.getElementById('timerBg').className = 'timer-bg ' + (isWork ? 'work' : isRest ? 'rest' : '');
 
   const total = isWork || isIdle ? WORK : REST;
@@ -1018,10 +1105,10 @@ function updateTimerUI() {
   document.getElementById('progressFill').className = 'progress-fill ' + (isRest ? 'rest' : 'work');
 
   document.getElementById('roundInfo').textContent =
-    `Блок ${state.block+1} · Раунд ${state.round+1} из ${rounds}`;
+    `Раунд ${state.round+1} из ${curRounds} · блок ${state.block+1}/${exercises.length}`;
 
   // dots
-  for (let i = 0; i < rounds; i++) {
+  for (let i = 0; i < curRounds; i++) {
     const d = document.getElementById(`dot-${i}`);
     if (!d) continue;
     if (i < state.round) d.className = 'dot done';
@@ -1056,7 +1143,8 @@ function finish() {
   const mins = Math.round(secs / 60);
   const rec = getRecommend(WORK, REST);
   document.getElementById('doneSub').textContent =
-    `${rec.title} · ${WORK}с/${REST}с\n${exercises.length} упражнения · ${rounds} раундов\n~${mins} минут`;
+    `${rec.title} · ${WORK}с/${REST}с\n${exercises.length} упражнений\n~${mins} минут`;
+  releaseWakeLock();
   showScreen('doneScreen');
 }
 
@@ -1068,6 +1156,7 @@ function showScreen(id) {
 function goSetup() {
   clearInterval(timer);
   running = false;
+  releaseWakeLock();
   showScreen('setupScreen');
   renderExList();
 }
@@ -1076,10 +1165,15 @@ function goSetup() {
 loadSettings();
 document.getElementById('workVal').textContent = WORK;
 document.getElementById('restVal').textContent = REST;
-document.querySelectorAll('.round-btn').forEach(b => b.classList.toggle('sel', parseInt(b.textContent) === rounds));
 document.getElementById('soundToggle').classList.toggle('on', soundOn);
+document.getElementById('wakeLockToggle').classList.toggle('on', wakeLockOn);
 updateIntervalUI();
 renderExList();
+
+// Re-acquire wake lock if tab becomes visible again (phone unlock)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running) acquireWakeLock();
+});
 </script>
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
 </body>
