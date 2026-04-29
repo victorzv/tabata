@@ -157,68 +157,135 @@ body { display: flex; flex-direction: column; }
 }
 .ex-remove:hover { color: var(--rest); }
 
-/* interval mode cards */
-.mode-list { display: flex; flex-direction: column; gap: 8px; }
+/* ── Interval stepper ── */
+.recommend-banner {
+  background: #001a0e;
+  border: 1px solid #004d2a;
+  border-radius: 14px;
+  padding: 0.875rem 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.recommend-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.recommend-body { flex: 1; }
+.recommend-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--work);
+  margin-bottom: 3px;
+}
+.recommend-desc {
+  font-size: 0.68rem;
+  color: #5ecfa0;
+  line-height: 1.5;
+}
 
-.mode-card {
+.presets-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-bottom: 0.75rem;
+}
+.presets-scroll::-webkit-scrollbar { display: none; }
+
+.preset-chip {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.preset-chip:active { transform: scale(0.95); }
+.preset-chip-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.preset-chip-times {
+  font-size: 0.6rem;
+  color: var(--muted);
+  margin-top: 1px;
+  white-space: nowrap;
+}
+.preset-chip.active {
+  border-color: var(--work);
+  background: #001a0e;
+}
+.preset-chip.active .preset-chip-name { color: var(--work); }
+.preset-chip.active .preset-chip-times { color: #5ecfa0; }
+
+.stepper-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 0.5rem;
+}
+.stepper-box {
+  flex: 1;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 0.875rem 1rem;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.stepper-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.stepper-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
-.mode-card.sel {
-  border-color: var(--work);
-  background: #001a0e;
-}
-.mode-card-dot {
-  width: 10px; height: 10px;
+.stepper-btn {
+  width: 36px; height: 36px;
   border-radius: 50%;
-  border: 1.5px solid var(--muted);
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
   flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s;
 }
-.mode-card.sel .mode-card-dot {
-  background: var(--work);
-  border-color: var(--work);
-}
-.mode-card-body { flex: 1; }
-.mode-card-title {
-  font-size: 0.82rem;
+.stepper-btn:active { transform: scale(0.9); background: var(--work); color: #000; border-color: var(--work); }
+.stepper-val {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 2px;
+  min-width: 48px;
+  text-align: center;
+  cursor: text;
 }
-.mode-card.sel .mode-card-title { color: var(--work); }
-.mode-card-times {
+.stepper-val.work-val { color: var(--work); }
+.stepper-val.rest-val { color: var(--rest); }
+.stepper-unit {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+.ratio-display {
+  text-align: center;
   font-size: 0.7rem;
   color: var(--muted);
-  letter-spacing: 0.05em;
-  margin-bottom: 3px;
-}
-.mode-card-desc {
-  font-size: 0.68rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
-.mode-card-badge {
-  font-size: 0.6rem;
-  padding: 3px 8px;
-  border-radius: 20px;
-  background: #001a0e;
-  color: var(--work);
-  border: 1px solid var(--work);
-  flex-shrink: 0;
+  margin-top: 2px;
   letter-spacing: 0.05em;
 }
-.mode-card.sel .mode-card-badge {
-  background: var(--work);
-  color: #000;
-}
+.ratio-display span { color: var(--text); font-weight: 700; }
 
 .add-ex-btn {
   width: 100%;
@@ -499,8 +566,44 @@ body { display: flex; flex-direction: column; }
   </div>
   <div class="setup-body">
 
-    <div class="section-label">Режим интервалов</div>
-    <div class="mode-list" id="modeList"></div>
+    <div class="section-label">Интервалы</div>
+
+    <!-- Dynamic recommendation banner -->
+    <div class="recommend-banner" id="recommendBanner">
+      <div class="recommend-icon">💡</div>
+      <div class="recommend-body">
+        <div class="recommend-title" id="recommendTitle">Реабилитация</div>
+        <div class="recommend-desc" id="recommendDesc">Отдых вдвое длиннее работы. Пульс успевает восстановиться. Рекомендуется при гипертонии и для старта.</div>
+      </div>
+    </div>
+
+    <!-- Preset chips (scrollable) -->
+    <div class="presets-scroll" id="presetsScroll"></div>
+
+    <!-- Steppers -->
+    <div class="stepper-row">
+      <div class="stepper-box">
+        <div class="stepper-label">Работа</div>
+        <div class="stepper-controls">
+          <button class="stepper-btn" onclick="stepVal('work',-1)">−</button>
+          <div class="stepper-val work-val" id="workVal" contenteditable="true"
+               oninput="onValInput('work',this)" onblur="onValBlur('work',this)">20</div>
+          <button class="stepper-btn" onclick="stepVal('work',1)">+</button>
+        </div>
+        <div class="stepper-unit">секунд</div>
+      </div>
+      <div class="stepper-box">
+        <div class="stepper-label">Отдых</div>
+        <div class="stepper-controls">
+          <button class="stepper-btn" onclick="stepVal('rest',-1)">−</button>
+          <div class="stepper-val rest-val" id="restVal" contenteditable="true"
+               oninput="onValInput('rest',this)" onblur="onValBlur('rest',this)">40</div>
+          <button class="stepper-btn" onclick="stepVal('rest',1)">+</button>
+        </div>
+        <div class="stepper-unit">секунд</div>
+      </div>
+    </div>
+    <div class="ratio-display" id="ratioDisplay">соотношение <span>1:2</span></div>
 
     <div class="section-label">Раундов на упражнение</div>
     <div class="rounds-row" id="roundsBtns">
@@ -564,6 +667,52 @@ body { display: flex; flex-direction: column; }
 </div>
 
 <script>
+// ── Presets ──
+const PRESETS = [
+  { id: 'rehab',    name: 'Реабилитация',      work: 20, rest: 40,
+    badge: '🏥', desc: 'Отдых вдвое длиннее работы. Пульс успевает восстановиться. Рекомендуется при гипертонии и для старта.' },
+  { id: 'cardio',   name: 'Мягкое кардио',     work: 30, rest: 30,
+    badge: '🚶', desc: 'Работа и отдых поровну. Хорошая аэробная нагрузка без экстремальных пиков давления.' },
+  { id: 'light',    name: 'Табата лёгкая',     work: 30, rest: 15,
+    badge: '🏃', desc: 'Соотношение 2:1 в мягком варианте. Заметная нагрузка, хорошая выносливость.' },
+  { id: 'classic',  name: 'Классика',           work: 20, rest: 10,
+    badge: '⚡', desc: 'Оригинальный протокол Табаты 1996 г. Очень интенсивно. Только для подготовленных.' },
+  { id: 'power',    name: 'Силовая',            work: 40, rest: 20,
+    badge: '💪', desc: 'Длинные подходы для силовых упражнений. Соотношение 2:1 с запасом времени на технику.' },
+];
+
+// Рекомендации по соотношению
+function getRecommend(w, r) {
+  const ratio = r / w;
+  if (ratio >= 2)    return { title: 'Реабилитация / восстановление', desc: 'Отдых вдвое длиннее работы — пульс полностью восстанавливается. Идеально при гипертонии, после болезни, для старта.', icon: '🏥' };
+  if (ratio >= 1.4)  return { title: 'Мягкое кардио', desc: 'Длинный отдых относительно работы. Безопасная нагрузка, хорошо для аэробной базы.', icon: '🚶' };
+  if (ratio >= 0.9)  return { title: 'Умеренное кардио', desc: 'Работа и отдых примерно поровну. Стандартная интервальная тренировка, подходит начинающим.', icon: '🏃' };
+  if (ratio >= 0.6)  return { title: 'Табата / HIIT', desc: 'Соотношение 2:1 — классика. Требует хорошей базовой подготовки. Интенсивно.', icon: '⚡' };
+  return { title: 'Экстремальная интенсивность', desc: 'Отдых короче работы. Очень тяжело. Только для опытных спортсменов.', icon: '🔥' };
+}
+
+// ── localStorage ──
+const LS_KEY = 'tabata_settings';
+
+function saveSettings() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ WORK, REST, rounds, exercises, soundOn }));
+  } catch(e) {}
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.WORK && s.WORK >= 5 && s.WORK <= 120) WORK = s.WORK;
+    if (s.REST && s.REST >= 5 && s.REST <= 120) REST = s.REST;
+    if (s.rounds && [2,4,6,8].includes(s.rounds)) rounds = s.rounds;
+    if (Array.isArray(s.exercises) && s.exercises.length > 0) exercises = s.exercises;
+    if (typeof s.soundOn === 'boolean') soundOn = s.soundOn;
+  } catch(e) {}
+}
+
 // ── State ──
 let exercises = [
   { name: 'Приседания (без прыжка)' },
@@ -578,97 +727,130 @@ let WORK = 20, REST = 40;
 let state = { block: 0, round: 0, phase: 'idle', sec: WORK };
 let totalDone = 0;
 
-const MODES = [
-  {
-    id: 'rehab',
-    title: 'Реабилитация',
-    work: 20, rest: 40,
-    badge: 'РЕКОМЕНДУЮ',
-    desc: 'Мягкий старт. Отдых вдвое длиннее работы — пульс успевает восстановиться. Для гипертонии стрессового типа, после болезни, абсолютных новичков.'
-  },
-  {
-    id: 'cardio_soft',
-    title: 'Мягкое кардио',
-    work: 30, rest: 30,
-    badge: 'НАЧАЛЬНЫЙ',
-    desc: 'Работа и отдых поровну. Хорошая аэробная нагрузка без экстремального пульса. Следующий шаг после реабилитации.'
-  },
-  {
-    id: 'classic_light',
-    title: 'Табата лёгкая',
-    work: 30, rest: 15,
-    badge: 'СРЕДНИЙ',
-    desc: 'Соотношение 2:1, но более щадящее. Хорошо подходит когда уже есть базовая подготовка, но классика ещё тяжела.'
-  },
-  {
-    id: 'classic',
-    title: 'Классическая табата',
-    work: 20, rest: 10,
-    badge: 'КЛАССИКА',
-    desc: 'Оригинальный протокол Табаты 1996 года. Очень интенсивно. Подходит подготовленным.'
-  },
-  {
-    id: 'power',
-    title: 'Силовая табата',
-    work: 40, rest: 20,
-    badge: 'ПРОДВИНУТЫЙ',
-    desc: 'Соотношение 2:1 с длинными подходами. Для силовых упражнений с весом, когда нужно больше времени на технику.'
-  }
-];
-
-let selectedMode = 'rehab';
-
-function renderModes() {
-  const list = document.getElementById('modeList');
-  list.innerHTML = '';
-  MODES.forEach(m => {
-    const card = document.createElement('div');
-    card.className = 'mode-card' + (m.id === selectedMode ? ' sel' : '');
-    card.onclick = () => selMode(m.id);
-    card.innerHTML = `
-      <div class="mode-card-dot"></div>
-      <div class="mode-card-body">
-        <div class="mode-card-title">${m.title}</div>
-        <div class="mode-card-times">${m.work} сек работа · ${m.rest} сек отдых · соотношение 1:${(m.rest/m.work).toFixed(1).replace('.0','')}</div>
-        <div class="mode-card-desc">${m.desc}</div>
-      </div>
-      <div class="mode-card-badge">${m.badge}</div>`;
-    list.appendChild(card);
+// ── Interval UI ──
+function renderPresets() {
+  const scroll = document.getElementById('presetsScroll');
+  scroll.innerHTML = '';
+  PRESETS.forEach(p => {
+    const chip = document.createElement('div');
+    const active = p.work === WORK && p.rest === REST;
+    chip.className = 'preset-chip' + (active ? ' active' : '');
+    chip.innerHTML = `<div class="preset-chip-name">${p.badge} ${p.name}</div><div class="preset-chip-times">${p.work}с / ${p.rest}с</div>`;
+    chip.onclick = () => applyPreset(p);
+    scroll.appendChild(chip);
   });
 }
 
-function selMode(id) {
-  selectedMode = id;
-  const m = MODES.find(x => x.id === id);
-  WORK = m.work;
-  REST = m.rest;
-  renderModes();
+function applyPreset(p) {
+  WORK = p.work; REST = p.rest;
+  document.getElementById('workVal').textContent = WORK;
+  document.getElementById('restVal').textContent = REST;
+  updateIntervalUI();
   renderExList();
+  saveSettings();
 }
+
+function stepVal(type, delta) {
+  if (type === 'work') {
+    WORK = Math.min(120, Math.max(5, WORK + delta));
+    document.getElementById('workVal').textContent = WORK;
+  } else {
+    REST = Math.min(120, Math.max(5, REST + delta));
+    document.getElementById('restVal').textContent = REST;
+  }
+  updateIntervalUI();
+  renderExList();
+  saveSettings();
+}
+
+function onValInput(type, el) {
+  // allow typing, validate on blur
+}
+function onValBlur(type, el) {
+  let v = parseInt(el.textContent);
+  if (isNaN(v) || v < 5) v = 5;
+  if (v > 120) v = 120;
+  el.textContent = v;
+  if (type === 'work') WORK = v; else REST = v;
+  updateIntervalUI();
+  renderExList();
+  saveSettings();
+}
+
+function updateIntervalUI() {
+  const ratio = REST / WORK;
+  const ratioStr = ratio === Math.floor(ratio)
+    ? `1:${ratio}`
+    : `1:${ratio.toFixed(1)}`;
+  document.getElementById('ratioDisplay').innerHTML = `соотношение <span>${ratioStr}</span>`;
+
+  const rec = getRecommend(WORK, REST);
+  document.getElementById('recommendBanner').querySelector('.recommend-icon').textContent = rec.icon;
+  document.getElementById('recommendTitle').textContent = rec.title;
+  document.getElementById('recommendDesc').textContent = rec.desc;
+
+  renderPresets();
+}
+
+function renderModes() { /* kept for compat */ }
+function selMode() { /* kept for compat */ }
+const MODES = PRESETS; // compat ref
+let selectedMode = 'rehab';
 
 // ── Audio ──
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-function beep(freq, dur, vol = 0.4) {
+// Базовый генератор тона: oscillator + gain с атакой и спадом
+function tone(freq, dur, vol = 0.8, type = 'square', detune = 0) {
   if (!soundOn) return;
   try {
     const o = ctx.createOscillator();
     const g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
+    // Лёгкий фильтр чтобы срезать слишком резкие верха у square
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 2200;
+    o.connect(f); f.connect(g); g.connect(ctx.destination);
+    o.type = type;
     o.frequency.value = freq;
-    o.type = 'sine';
-    g.gain.setValueAtTime(vol, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    o.start(); o.stop(ctx.currentTime + dur);
+    o.detune.value = detune;
+    // Attack + sustain + decay
+    const t = ctx.currentTime;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.015);   // быстрая атака
+    g.gain.setValueAtTime(vol, t + dur * 0.6);         // держим
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur); // спад
+    o.start(t); o.stop(t + dur + 0.01);
   } catch(e) {}
 }
 
-function beepWork() { beep(880, 0.15); setTimeout(() => beep(880, 0.15), 180); }
-function beepRest() { beep(440, 0.3); }
-function beepDone() {
-  [0, 150, 300, 500].forEach((d, i) => setTimeout(() => beep(660 + i*110, 0.25), d));
+// Двойной тон (основа + квинта) — более "плотный" звук
+function chord(freq, dur, vol = 0.7, type = 'square') {
+  tone(freq,        dur, vol * 0.6, type);
+  tone(freq * 1.5,  dur, vol * 0.4, type, 5); // квинта + чуть детюн
 }
-function beepCount() { beep(660, 0.08, 0.2); }
+
+// СТАРТ РАБОТЫ — два коротких резких удара вверх (бип-БИП)
+function beepWork() {
+  tone(660, 0.12, 0.75, 'square');
+  setTimeout(() => tone(990, 0.18, 0.9, 'square'), 140);
+}
+
+// ОТДЫХ — один длинный низкий тон вниз (расслабляющий)
+function beepRest() {
+  chord(440, 0.35, 0.8, 'square');
+}
+
+// ФИНИШ — восходящий аккорд из 4 нот
+function beepDone() {
+  const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+  notes.forEach((n, i) => setTimeout(() => tone(n, 0.28, 0.85, 'square'), i * 130));
+}
+
+// ОБРАТНЫЙ ОТСЧЁТ — короткий чёткий щелчок
+function beepCount() {
+  tone(880, 0.07, 0.6, 'square');
+}
 
 // ── Setup ──
 function renderExList() {
@@ -681,7 +863,7 @@ function renderExList() {
       <div class="ex-num">${i+1}</div>
       <div class="ex-fields">
         <input class="ex-name-input" value="${ex.name}" placeholder="Название упражнения"
-          oninput="exercises[${i}].name=this.value">
+          oninput="exercises[${i}].name=this.value; saveSettings()"
         <div class="ex-meta">блок ${i+1} · ${rounds} × ${WORK}сек работа / ${REST}сек отдых</div>
       </div>
       <button class="ex-remove" onclick="removeEx(${i})">×</button>`;
@@ -692,6 +874,7 @@ function renderExList() {
 function addExercise() {
   exercises.push({ name: '' });
   renderExList();
+  saveSettings();
   setTimeout(() => {
     const inputs = document.querySelectorAll('.ex-name-input');
     inputs[inputs.length-1].focus();
@@ -702,6 +885,7 @@ function removeEx(i) {
   if (exercises.length <= 1) return;
   exercises.splice(i, 1);
   renderExList();
+  saveSettings();
 }
 
 function selRounds(n) {
@@ -710,12 +894,14 @@ function selRounds(n) {
     b.classList.toggle('sel', parseInt(b.textContent) === n);
   });
   renderExList();
+  saveSettings();
 }
 
 function toggleSound() {
   soundOn = !soundOn;
   document.getElementById('soundToggle').classList.toggle('on', soundOn);
   if (soundOn) { ctx.resume(); beepWork(); }
+  saveSettings();
 }
 
 // ── Start ──
@@ -868,9 +1054,9 @@ function finish() {
   const total = exercises.length * rounds;
   const secs = total * (WORK + REST);
   const mins = Math.round(secs / 60);
-  const m = MODES.find(x => x.id === selectedMode);
+  const rec = getRecommend(WORK, REST);
   document.getElementById('doneSub').textContent =
-    `${m.title} · ${WORK}с/${REST}с\n${exercises.length} упражнения · ${rounds} раундов\n~${mins} минут`;
+    `${rec.title} · ${WORK}с/${REST}с\n${exercises.length} упражнения · ${rounds} раундов\n~${mins} минут`;
   showScreen('doneScreen');
 }
 
@@ -887,8 +1073,12 @@ function goSetup() {
 }
 
 // init
-renderModes();
-selMode('rehab');
+loadSettings();
+document.getElementById('workVal').textContent = WORK;
+document.getElementById('restVal').textContent = REST;
+document.querySelectorAll('.round-btn').forEach(b => b.classList.toggle('sel', parseInt(b.textContent) === rounds));
+document.getElementById('soundToggle').classList.toggle('on', soundOn);
+updateIntervalUI();
 renderExList();
 </script>
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
