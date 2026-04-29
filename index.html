@@ -157,6 +157,69 @@ body { display: flex; flex-direction: column; }
 }
 .ex-remove:hover { color: var(--rest); }
 
+/* interval mode cards */
+.mode-list { display: flex; flex-direction: column; gap: 8px; }
+
+.mode-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mode-card.sel {
+  border-color: var(--work);
+  background: #001a0e;
+}
+.mode-card-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.mode-card.sel .mode-card-dot {
+  background: var(--work);
+  border-color: var(--work);
+}
+.mode-card-body { flex: 1; }
+.mode-card-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.mode-card.sel .mode-card-title { color: var(--work); }
+.mode-card-times {
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+.mode-card-desc {
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.mode-card-badge {
+  font-size: 0.6rem;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: #001a0e;
+  color: var(--work);
+  border: 1px solid var(--work);
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+}
+.mode-card.sel .mode-card-badge {
+  background: var(--work);
+  color: #000;
+}
+
 .add-ex-btn {
   width: 100%;
   padding: 0.875rem;
@@ -436,6 +499,9 @@ body { display: flex; flex-direction: column; }
   </div>
   <div class="setup-body">
 
+    <div class="section-label">Режим интервалов</div>
+    <div class="mode-list" id="modeList"></div>
+
     <div class="section-label">Раундов на упражнение</div>
     <div class="rounds-row" id="roundsBtns">
       <button class="round-btn" onclick="selRounds(2)">2</button>
@@ -500,7 +566,7 @@ body { display: flex; flex-direction: column; }
 <script>
 // ── State ──
 let exercises = [
-  { name: 'Выпрыгивания из приседа' },
+  { name: 'Приседания (без прыжка)' },
   { name: 'TRX-тяга к груди' },
   { name: 'Жим гантелей стоя' }
 ];
@@ -508,9 +574,77 @@ let rounds = 4;
 let soundOn = true;
 let timer = null;
 let running = false;
-let state = { block: 0, round: 0, phase: 'idle', sec: 20 };
+let WORK = 20, REST = 40;
+let state = { block: 0, round: 0, phase: 'idle', sec: WORK };
 let totalDone = 0;
-const WORK = 20, REST = 10;
+
+const MODES = [
+  {
+    id: 'rehab',
+    title: 'Реабилитация',
+    work: 20, rest: 40,
+    badge: 'РЕКОМЕНДУЮ',
+    desc: 'Мягкий старт. Отдых вдвое длиннее работы — пульс успевает восстановиться. Для гипертонии стрессового типа, после болезни, абсолютных новичков.'
+  },
+  {
+    id: 'cardio_soft',
+    title: 'Мягкое кардио',
+    work: 30, rest: 30,
+    badge: 'НАЧАЛЬНЫЙ',
+    desc: 'Работа и отдых поровну. Хорошая аэробная нагрузка без экстремального пульса. Следующий шаг после реабилитации.'
+  },
+  {
+    id: 'classic_light',
+    title: 'Табата лёгкая',
+    work: 30, rest: 15,
+    badge: 'СРЕДНИЙ',
+    desc: 'Соотношение 2:1, но более щадящее. Хорошо подходит когда уже есть базовая подготовка, но классика ещё тяжела.'
+  },
+  {
+    id: 'classic',
+    title: 'Классическая табата',
+    work: 20, rest: 10,
+    badge: 'КЛАССИКА',
+    desc: 'Оригинальный протокол Табаты 1996 года. Очень интенсивно. Подходит подготовленным.'
+  },
+  {
+    id: 'power',
+    title: 'Силовая табата',
+    work: 40, rest: 20,
+    badge: 'ПРОДВИНУТЫЙ',
+    desc: 'Соотношение 2:1 с длинными подходами. Для силовых упражнений с весом, когда нужно больше времени на технику.'
+  }
+];
+
+let selectedMode = 'rehab';
+
+function renderModes() {
+  const list = document.getElementById('modeList');
+  list.innerHTML = '';
+  MODES.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'mode-card' + (m.id === selectedMode ? ' sel' : '');
+    card.onclick = () => selMode(m.id);
+    card.innerHTML = `
+      <div class="mode-card-dot"></div>
+      <div class="mode-card-body">
+        <div class="mode-card-title">${m.title}</div>
+        <div class="mode-card-times">${m.work} сек работа · ${m.rest} сек отдых · соотношение 1:${(m.rest/m.work).toFixed(1).replace('.0','')}</div>
+        <div class="mode-card-desc">${m.desc}</div>
+      </div>
+      <div class="mode-card-badge">${m.badge}</div>`;
+    list.appendChild(card);
+  });
+}
+
+function selMode(id) {
+  selectedMode = id;
+  const m = MODES.find(x => x.id === id);
+  WORK = m.work;
+  REST = m.rest;
+  renderModes();
+  renderExList();
+}
 
 // ── Audio ──
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -548,7 +682,7 @@ function renderExList() {
       <div class="ex-fields">
         <input class="ex-name-input" value="${ex.name}" placeholder="Название упражнения"
           oninput="exercises[${i}].name=this.value">
-        <div class="ex-meta">блок ${i+1} · ${rounds} × 20сек работа / 10сек отдых</div>
+        <div class="ex-meta">блок ${i+1} · ${rounds} × ${WORK}сек работа / ${REST}сек отдых</div>
       </div>
       <button class="ex-remove" onclick="removeEx(${i})">×</button>`;
     list.appendChild(card);
@@ -732,9 +866,11 @@ function finish() {
   running = false;
   beepDone();
   const total = exercises.length * rounds;
-  const mins = Math.round((total * 30) / 60);
+  const secs = total * (WORK + REST);
+  const mins = Math.round(secs / 60);
+  const m = MODES.find(x => x.id === selectedMode);
   document.getElementById('doneSub').textContent =
-    `${exercises.length} упражнения\n${rounds} раундов на каждое\n~${mins} минут работы`;
+    `${m.title} · ${WORK}с/${REST}с\n${exercises.length} упражнения · ${rounds} раундов\n~${mins} минут`;
   showScreen('doneScreen');
 }
 
@@ -751,6 +887,8 @@ function goSetup() {
 }
 
 // init
+renderModes();
+selMode('rehab');
 renderExList();
 </script>
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
