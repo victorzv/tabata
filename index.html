@@ -324,6 +324,27 @@ body { display: flex; flex-direction: column; }
 }
 .ratio-display span { color: var(--text); font-weight: 700; }
 
+/* next exercise hint — крупно под основным названием */
+.ex-next {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+  margin-top: 0.25rem;
+}
+.ex-next strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* phase-tag for break */
+.phase-tag.brk { color: #a78bfa; border-color: #a78bfa; }
+.timer-bg.brk { background: #a78bfa; opacity: 0.06; }
+.big-time.brk { color: #a78bfa; }
+.progress-fill.brk { background: #a78bfa; }
+.ex-display.brk { color: var(--text); opacity: 0.3; }
+
 .add-ex-btn {
   width: 100%;
   padding: 0.875rem;
@@ -649,7 +670,21 @@ body { display: flex; flex-direction: column; }
     </div>
     <div class="ratio-display" id="ratioDisplay">соотношение <span>1:2</span></div>
 
-    <div class="section-label">Упражнения <span style="color:var(--muted);font-size:0.6rem;letter-spacing:0.05em;">— раунды настраиваются для каждого</span></div>
+    <!-- Пауза между упражнениями -->
+    <div class="section-label" style="margin-top:1.25rem;">Пауза между упражнениями</div>
+    <div class="stepper-row">
+      <div class="stepper-box" style="flex:none;width:100%;">
+        <div class="stepper-label">Отдых между блоками</div>
+        <div class="stepper-controls">
+          <button class="stepper-btn" onclick="stepVal('brk',-5)">−</button>
+          <div class="stepper-val" id="brkVal" style="color:#a78bfa;" contenteditable="true"
+               oninput="onValInput('brk',this)" onblur="onValBlur('brk',this)">0</div>
+          <button class="stepper-btn" onclick="stepVal('brk',5)">+</button>
+        </div>
+        <div class="stepper-unit">секунд (0 = без паузы)</div>
+      </div>
+    </div>
+    <div class="ratio-display" id="brkDisplay" style="margin-bottom:0.25rem;"></div> <span style="color:var(--muted);font-size:0.6rem;letter-spacing:0.05em;">— раунды настраиваются для каждого</span></div>
     <div class="ex-list" id="exList"></div>
     <button class="add-ex-btn" onclick="addExercise()">+ добавить упражнение</button>
 
@@ -686,6 +721,7 @@ body { display: flex; flex-direction: column; }
   <!-- CENTER: exercise name BIG + timer -->
   <div class="timer-center">
     <div class="ex-display" id="exDisplay">—</div>
+    <div class="ex-next" id="exNext"></div>
     <div class="big-time ready" id="bigTime">20</div>
     <div class="progress-track">
       <div class="progress-fill work" id="progressFill" style="width:100%"></div>
@@ -741,7 +777,7 @@ const LS_KEY = 'tabata_settings';
 
 function saveSettings() {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify({ WORK, REST, exercises, soundOn, wakeLockOn }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ WORK, REST, BREAK, exercises, soundOn, wakeLockOn }));
   } catch(e) {}
 }
 
@@ -752,6 +788,7 @@ function loadSettings() {
     const s = JSON.parse(raw);
     if (s.WORK && s.WORK >= 5 && s.WORK <= 120) WORK = s.WORK;
     if (s.REST && s.REST >= 5 && s.REST <= 120) REST = s.REST;
+    if (typeof s.BREAK === 'number' && s.BREAK >= 0 && s.BREAK <= 300) BREAK = s.BREAK;
     if (Array.isArray(s.exercises) && s.exercises.length > 0) {
       exercises = s.exercises.map(e => ({
         name: e.name || '',
@@ -775,7 +812,7 @@ let wakeLockOn = true;
 let wakeLockSentinel = null;
 let timer = null;
 let running = false;
-let WORK = 20, REST = 40;
+let WORK = 20, REST = 40, BREAK = 0;
 let state = { block: 0, round: 0, phase: 'idle', sec: WORK };
 let totalDone = 0;
 
@@ -806,13 +843,27 @@ function stepVal(type, delta) {
   if (type === 'work') {
     WORK = Math.min(120, Math.max(5, WORK + delta));
     document.getElementById('workVal').textContent = WORK;
-  } else {
+  } else if (type === 'rest') {
     REST = Math.min(120, Math.max(5, REST + delta));
     document.getElementById('restVal').textContent = REST;
+  } else if (type === 'brk') {
+    BREAK = Math.min(300, Math.max(0, BREAK + delta));
+    document.getElementById('brkVal').textContent = BREAK;
+    updateBrkDisplay();
   }
   updateIntervalUI();
   renderExList();
   saveSettings();
+}
+
+function updateBrkDisplay() {
+  const el = document.getElementById('brkDisplay');
+  if (!el) return;
+  if (BREAK === 0) {
+    el.innerHTML = 'Без паузы между упражнениями';
+  } else {
+    el.innerHTML = `Пауза <span>${BREAK}с</span> после каждого упражнения`;
+  }
 }
 
 function onValInput(type, el) {
@@ -820,10 +871,18 @@ function onValInput(type, el) {
 }
 function onValBlur(type, el) {
   let v = parseInt(el.textContent);
-  if (isNaN(v) || v < 5) v = 5;
-  if (v > 120) v = 120;
-  el.textContent = v;
-  if (type === 'work') WORK = v; else REST = v;
+  if (type === 'brk') {
+    if (isNaN(v) || v < 0) v = 0;
+    if (v > 300) v = 300;
+    el.textContent = v;
+    BREAK = v;
+    updateBrkDisplay();
+  } else {
+    if (isNaN(v) || v < 5) v = 5;
+    if (v > 120) v = 120;
+    el.textContent = v;
+    if (type === 'work') WORK = v; else REST = v;
+  }
   updateIntervalUI();
   renderExList();
   saveSettings();
@@ -902,6 +961,12 @@ function beepDone() {
 // ОБРАТНЫЙ ОТСЧЁТ — короткий чёткий щелчок
 function beepCount() {
   tone(880, 0.07, 0.6, 'square');
+}
+
+// ПАУЗА МЕЖДУ УПРАЖНЕНИЯМИ — мягкий двойной тон
+function beepBreak() {
+  tone(528, 0.2, 0.6, 'square');
+  setTimeout(() => tone(396, 0.3, 0.5, 'square'), 220);
 }
 
 // ── Setup ──
@@ -1045,69 +1110,125 @@ function togglePlay() {
 
 function tick() {
   state.sec--;
-  if (state.sec <= 3 && state.sec > 0 && state.phase === 'work') beepCount();
+  // Три сигнала перед окончанием любой фазы отдыха
+  if (state.sec <= 3 && state.sec > 0 && (state.phase === 'work' || state.phase === 'rest' || state.phase === 'brk')) {
+    beepCount();
+  }
   if (state.sec <= 0) nextPhase();
   else updateTimerUI();
 }
 
 function nextPhase() {
   const curRounds = exercises[state.block] ? exercises[state.block].rounds : 4;
+
   if (state.phase === 'work') {
     state.phase = 'rest';
     state.sec = REST;
     beepRest();
-  } else {
+
+  } else if (state.phase === 'rest') {
     totalDone++;
     state.round++;
     if (state.round >= curRounds) {
+      // блок завершён
       state.round = 0;
       state.block++;
       if (state.block >= exercises.length) {
         finish(); return;
       }
-      buildDots(state.block); // rebuild dots for new block's round count
+      buildDots(state.block);
+      // если есть пауза между упражнениями — войти в фазу brk
+      if (BREAK > 0) {
+        state.phase = 'brk';
+        state.sec = BREAK;
+        beepBreak();
+        updateTimerUI(); return;
+      }
     }
     state.phase = 'work';
     state.sec = WORK;
     beepWork();
+
+  } else if (state.phase === 'brk') {
+    // пауза закончилась — начинаем новое упражнение
+    state.phase = 'work';
+    state.sec = WORK;
+    beepWork();
   }
+
   updateTimerUI();
 }
 
 function updateTimerUI() {
   const isWork = state.phase === 'work';
   const isRest = state.phase === 'rest';
+  const isBrk  = state.phase === 'brk';
   const isIdle = state.phase === 'idle';
   const ex = exercises[state.block];
   const curRounds = ex ? ex.rounds : 4;
 
-  document.getElementById('phaseTag').textContent = isWork ? 'РАБОТА' : isRest ? 'ОТДЫХ' : 'СТАРТ';
-  document.getElementById('phaseTag').className = 'phase-tag ' + (isWork ? 'work' : isRest ? 'rest' : 'ready');
+  // ── Phase tag ──
+  const phaseTag = document.getElementById('phaseTag');
+  if (isWork)      { phaseTag.textContent = 'РАБОТА';   phaseTag.className = 'phase-tag work'; }
+  else if (isRest) { phaseTag.textContent = 'ОТДЫХ';    phaseTag.className = 'phase-tag rest'; }
+  else if (isBrk)  { phaseTag.textContent = 'ПАУЗА';    phaseTag.className = 'phase-tag brk'; }
+  else             { phaseTag.textContent = 'СТАРТ';    phaseTag.className = 'phase-tag ready'; }
 
+  // ── Главное название упражнения ──
   const exEl = document.getElementById('exDisplay');
   exEl.textContent = ex ? ex.name : '—';
-  exEl.className = 'ex-display ' + (isWork ? 'work' : isRest ? 'rest' : 'ready');
+  exEl.className = 'ex-display ' + (isWork ? 'work' : isBrk ? 'brk' : isRest ? 'rest' : 'ready');
 
-  // Подсказка: следующее упражнение на последнем отдыхе блока
-  if (isRest && state.block < exercises.length - 1 && state.round === curRounds - 1) {
-    document.getElementById('exSub').textContent = '→ следующий: ' + exercises[state.block + 1].name;
+  // ── "Далее" подсказка — показываем всегда когда есть следующий шаг ──
+  const exNext = document.getElementById('exNext');
+  const nextEx = exercises[state.block + 1];
+
+  if (isWork) {
+    // Во время работы: показываем следующий раунд или следующее упражнение
+    const isLastRound = (state.round + 1 >= curRounds);
+    if (isLastRound && nextEx) {
+      exNext.innerHTML = `далее → <strong>${nextEx.name}</strong>`;
+    } else if (!isLastRound) {
+      exNext.innerHTML = `далее → <strong>раунд ${state.round + 2}</strong> · ${ex.name}`;
+    } else {
+      exNext.textContent = 'последний раунд';
+    }
+  } else if (isRest) {
+    // Во время отдыха: следующий раунд или упражнение
+    const isLastRound = (state.round + 1 >= curRounds);
+    if (isLastRound && nextEx) {
+      exNext.innerHTML = `далее → <strong>${nextEx.name}</strong>` + (BREAK > 0 ? ` (пауза ${BREAK}с)` : '');
+    } else if (!isLastRound) {
+      exNext.innerHTML = `далее → <strong>раунд ${state.round + 2}</strong> · ${ex.name}`;
+    } else {
+      exNext.textContent = '—';
+    }
+  } else if (isBrk) {
+    // Во время паузы между упражнениями
+    exNext.innerHTML = `готовься → <strong>${ex ? ex.name : ''}</strong>`;
   } else {
-    document.getElementById('exSub').textContent = `блок ${state.block+1} из ${exercises.length}`;
+    exNext.textContent = '';
   }
 
+  // ── Таймер ──
   document.getElementById('bigTime').textContent = isIdle ? WORK : state.sec;
-  document.getElementById('bigTime').className = 'big-time ' + (isWork ? 'work' : isRest ? 'rest' : 'ready');
-  document.getElementById('timerBg').className = 'timer-bg ' + (isWork ? 'work' : isRest ? 'rest' : '');
+  document.getElementById('bigTime').className = 'big-time ' + (isWork ? 'work' : isBrk ? 'brk' : isRest ? 'rest' : 'ready');
+  document.getElementById('timerBg').className  = 'timer-bg '  + (isWork ? 'work' : isBrk ? 'brk' : isRest ? 'rest' : '');
 
-  const total = isWork || isIdle ? WORK : REST;
+  // ── Прогресс-бар ──
+  const total = isWork || isIdle ? WORK : isBrk ? BREAK : REST;
   const pct = ((isIdle ? WORK : state.sec) / total) * 100;
   document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressFill').className = 'progress-fill ' + (isRest ? 'rest' : 'work');
+  document.getElementById('progressFill').className = 'progress-fill ' + (isRest ? 'rest' : isBrk ? 'brk' : 'work');
 
+  // ── Мелкий статус ──
+  document.getElementById('exSub').textContent = `блок ${state.block+1}/${exercises.length}`;
   document.getElementById('roundInfo').textContent =
-    `Раунд ${state.round+1} из ${curRounds} · блок ${state.block+1}/${exercises.length}`;
+    isBrk
+      ? `пауза перед: ${ex ? ex.name : ''}`
+      : `Раунд ${state.round+1} из ${curRounds} · блок ${state.block+1}/${exercises.length}`;
 
-  // dots
+  // ── Точки раундов ──
   for (let i = 0; i < curRounds; i++) {
     const d = document.getElementById(`dot-${i}`);
     if (!d) continue;
@@ -1116,7 +1237,7 @@ function updateTimerUI() {
     else d.className = 'dot';
   }
 
-  // block segments
+  // ── Полоски блоков ──
   exercises.forEach((_, i) => {
     const s = document.getElementById(`bseg-${i}`);
     if (!s) return;
@@ -1165,9 +1286,11 @@ function goSetup() {
 loadSettings();
 document.getElementById('workVal').textContent = WORK;
 document.getElementById('restVal').textContent = REST;
+document.getElementById('brkVal').textContent  = BREAK;
 document.getElementById('soundToggle').classList.toggle('on', soundOn);
 document.getElementById('wakeLockToggle').classList.toggle('on', wakeLockOn);
 updateIntervalUI();
+updateBrkDisplay();
 renderExList();
 
 // Re-acquire wake lock if tab becomes visible again (phone unlock)
